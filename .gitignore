@@ -1,0 +1,12 @@
+# Confidential input: never commit screenplays
+*.txt
+!requirements.txt
+*.zip
+# Runs contain screenplay quotes -> share privately, not in the public repo
+outputs/
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+submission/

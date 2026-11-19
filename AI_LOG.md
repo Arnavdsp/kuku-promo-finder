@@ -1,0 +1,15 @@
+# Where AI got it wrong (running log)
+
+Tools: Claude (Claude Code) for planning, code and debugging; Groq `openai/gpt-oss-120b` inside the tool.
+
+| # | What the AI did | How it was caught | Fix |
+|---|---|---|---|
+| 1 | Claude's first plan defaulted to Groq `llama-3.3-70b-versatile`, which is no longer on Groq's free tier (2026) and had a 100k tokens/day cap — too small for one 50-episode show. | Checked Groq's current rate-limit docs before the full run. | Default switched to `openai/gpt-oss-120b` (200k tokens/day, 8k/min). |
+| 2 | Claude's first hook/cliffhanger rules passed almost everything: "Here you go." counted as a hook (any line in 3s), and every episode ending counted as unresolved, even "gentle string music fading out". The no-AI baseline scored ~0.99. | Read the top-5 of the first baseline run. | Hook rule now needs a shocking line (?, !, threat words) or physical action; endings need an unresolved last beat; calm/fade-out endings are flagged. |
+| 3 | The cliffhanger rule matched "swell" inside "Crushed leaves ease swelling". | Read the top-5 of the fake-LLM test run. | Sound-cue words ("swell", "drone", "sting") only count on SOUND events. |
+| 4 | Montage prompt listed events that only partly overlapped a clip, so a model that picked them correctly was rejected. | Fake-endpoint test produced 0 valid montages. | List only events fully inside each clip; list clips in story order. |
+| 5 | gpt-oss-120b, asked for timestamps-free clips, proposed 70s+ clips in 2 of 3 smoke-test episodes (it can't subtract mm:ss reliably) and only 1 promo per episode. | Smoke test on Ep 1-3: validity 33%. | Prompt v2 shows times in seconds, asks for `est_seconds` and 3-5 promos; code trims the start if still too long. Validity on the same episodes: 89%. |
+| 6 | The model sometimes returned a JSON *array* instead of `{"promos": [...]}`; Claude's code silently read that as "0 promos". 5 episodes lost candidates; in 5 episodes the array was also garbled after the first promo. | Coverage metric: 8 of 50 episodes had no promo. | Accept both shapes (+ test). Garbled fragments are still rejected as `no_segments` (10 items) — reported, not hidden. |
+| 7 | Claude's de-duplication called short lines a match when one was a substring of another ("no" inside "I know you"), so Ep 21 and Ep 26 were wrongly dropped as "recaps" of Ep 13/33/44. | Coverage metric again: 2 episodes still empty; their rejections pointed at far-away episodes. | Substring match only for lines of 12+ chars; recap check uses lines of 4+ words (+ test). Coverage 100%. |
+| 8 | Groq JSON mode itself failed on Ep 24 (`json_validate_failed`). | `run_meta.json` episode_status. | On that error, retry without JSON mode and parse the JSON from the text. |
+| 9 | The model's self-scores are inflated: mean cliffhanger 4.61/5, standalone 4.24/5 (stdev ~0.6) — e.g. it gives 5/5 "standalone" to a clip that needs to know who Prudence and "the healer" are. | `llm_score_spread` in `run_meta.json`; reading the top 10. | Self-scores feed only 70% of each sub-score; rule flags and the human review carry the rest. Not fixed — reported as a limit. |
