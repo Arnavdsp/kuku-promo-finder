@@ -1,4 +1,4 @@
-"""One OpenAI-compatible client for every provider (Groq, OpenRouter, OpenAI, Ollama, any custom endpoint).
+"""One OpenAI-compatible client for every provider (Groq, OpenAI, Anthropic, Gemini, OpenRouter, Mistral, DeepSeek, Together, Ollama, any custom endpoint).
 
 Swapping models = changing env vars / CLI flags. No provider-specific code paths.
   LLM_PROVIDER  groq | openrouter | openai | ollama | custom | none
@@ -20,6 +20,12 @@ PRESETS = {
     "groq": {"base_url": "https://api.groq.com/openai/v1", "model": "openai/gpt-oss-120b", "key_env": "GROQ_API_KEY"},
     "openrouter": {"base_url": "https://openrouter.ai/api/v1", "model": "openai/gpt-oss-120b:free", "key_env": "OPENROUTER_API_KEY"},
     "openai": {"base_url": "https://api.openai.com/v1", "model": "gpt-4o-mini", "key_env": "OPENAI_API_KEY"},
+    "anthropic": {"base_url": "https://api.anthropic.com/v1", "model": "claude-sonnet-5-5", "key_env": "ANTHROPIC_API_KEY",
+                  "headers": {"anthropic-dangerous-direct-browser-access": "true"}},   # OpenAI-compatible endpoint; header allows browser use
+    "gemini": {"base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "", "key_env": "GEMINI_API_KEY"},
+    "mistral": {"base_url": "https://api.mistral.ai/v1", "model": "", "key_env": "MISTRAL_API_KEY"},
+    "deepseek": {"base_url": "https://api.deepseek.com", "model": "", "key_env": "DEEPSEEK_API_KEY"},
+    "together": {"base_url": "https://api.together.xyz/v1", "model": "", "key_env": "TOGETHER_API_KEY"},
     "ollama": {"base_url": "http://localhost:11434/v1", "model": "llama3.1:8b", "key_env": ""},
     "custom": {"base_url": "", "model": "", "key_env": ""},
     "none": {"base_url": "", "model": "rules-only-baseline", "key_env": ""},
@@ -44,6 +50,7 @@ class LLMConfig:
     temperature: float = 0.0
     timeout: int = 120
     max_retries: int = 5
+    extra_headers: dict = field(default_factory=dict)   # e.g. Anthropic's browser opt-in header
     usage: dict = field(default_factory=lambda: {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "retries": 0})
 
     @property
@@ -63,7 +70,7 @@ class LLMConfig:
         cfg = cls(provider=provider, backup_keys=keys[1:],
                   base_url=(base_url or os.getenv("LLM_BASE_URL") or p["base_url"]).rstrip("/"),
                   model=model or os.getenv("LLM_MODEL") or p["model"],
-                  api_key=key)
+                  api_key=key, extra_headers=dict(p.get("headers", {})))
         if cfg.enabled and not cfg.base_url:
             raise LLMError("custom provider needs LLM_BASE_URL (or --base-url).")
         if cfg.enabled and not cfg.model:
@@ -90,7 +97,7 @@ def extract_json(text: str) -> dict:
 
 
 def _post(cfg: LLMConfig, payload: dict) -> requests.Response:
-    headers = {"Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json", **cfg.extra_headers}
     if cfg.api_key:
         headers["Authorization"] = f"Bearer {cfg.api_key}"
     return requests.post(f"{cfg.base_url}/chat/completions", headers=headers, json=payload, timeout=cfg.timeout)

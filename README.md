@@ -108,15 +108,15 @@ flowchart TB
  ┌──────────────────────────── your browser ────────────────────────────┐
  │  Drop screenplays ─▶ Python runs HERE (Pyodide) ─▶ ranked promos     │
  │                            │                                         │
- │                            └──▶ Groq API (your key, this tab only)   │
+ │                            └──▶ any LLM API (your key, tab only)     │
  └──────────────────────────────────────────────────────────────────────┘
           The Space only serves the page. No server · no stored keys · no stored files
 ```
 
-1. Pick a model: **GPT-OSS 120B** (default) · GPT-OSS 20B · Qwen 3.8 27B
+1. Paste **any** LLM API key: Groq, OpenAI, Anthropic, Google Gemini, OpenRouter, Mistral, DeepSeek, Together, or any OpenAI-compatible endpoint (Options → Provider → Custom). The provider is detected from the key and its live model list fills the model menu. Default: Groq **GPT-OSS 120B** ([free key](https://console.groq.com/keys)). **No key?** It runs the no-AI baseline.
 2. Drop the episode `.txt` files (or one `.zip`)
-3. Paste a Groq key ([free](https://console.groq.com/keys)). **No key?** It runs the no-AI baseline.
-4. **Find promos** → browse, accept/reject, download CSV
+3. **Find promos** → browse, accept/reject, download CSV
+4. **Where it picks badly** tab: code collects the evidence from the run (warning flags, rejections, AI vs no-AI comparison, real examples) and the chosen LLM writes the analysis from that evidence only
 
 **Preview promo**: shows how the promo could look:
 
@@ -156,6 +156,7 @@ python -m pytest -q tests
 ```bash
 python run.py --input show.zip --provider custom --base-url https://YOUR-ENDPOINT/v1 --model YOUR-MODEL
 python run.py --input show.zip --provider openrouter --model <model>
+python run.py --input show.zip --provider anthropic        # also: openai · gemini · mistral · deepseek · together (key env: ANTHROPIC_API_KEY, …)
 python run.py --input show.zip --provider ollama --model llama3.1:8b
 ```
 Results are cached per (prompt version, model, episode), so an interrupted run resumes for free.
@@ -188,11 +189,12 @@ promo_finder/
 ├── parse.py        [1]  screenplay → events with IDs
 ├── prompts.py      [2]  the AI instructions (versioned)
 ├── candidates.py   [2]  one AI call per episode + no-AI baseline
-├── llm.py              one client for Groq / OpenRouter / OpenAI / Ollama / custom
+├── llm.py              one client for any OpenAI-compatible API (Groq, OpenAI, Anthropic, Gemini, OpenRouter, Ollama, custom…)
 ├── validate.py     [3]  snap · reject · flag · dedupe
 ├── rank.py         [4]  priority score · selection · sensitivity
 ├── pipeline.py         runs 1→4, writes outputs
 ├── evaluate.py         automatic metrics + blind review sheet
+├── failure.py          "where it picks badly": evidence (code) + write-up (any LLM)
 └── preview.py          optional video-preview prompts
 space/              web app (one self-contained page)
 notebooks/          the walkthrough notebook

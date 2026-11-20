@@ -41,6 +41,18 @@ a{color:var(--orange)}
 .ms-item .t{font-weight:700}.ms-item .d{font-size:12.5px;color:var(--muted);margin-top:2px}
 .ms-item .ck{margin-left:auto;color:var(--orange);visibility:hidden}
 .ms-item.on .ck{visibility:visible}
+.ms-search{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:2px 0 6px;outline:0}
+.ms-list{max-height:340px;overflow:auto}
+.ms-note{font-size:12px;color:var(--muted);padding:6px 12px 8px}
+.prov{font-size:11.5px;color:var(--orange);white-space:nowrap;font-weight:600}
+.prov.bad{color:#FF8A8F}
+.opts select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text)}
+.opts input.wide{width:260px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.fail-card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.fail-card h4{margin:0 0 6px;font-size:16px}
+.fail-card .row2{font-size:13.5px;color:#C9CBD1;line-height:1.5;margin-top:3px}
+.fail-card .row2 b{color:var(--muted);font-weight:600}
+.ev-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-bottom:14px}
 .ms-head{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);padding:8px 12px 4px}
 /* hero + composer */
 .hero{text-align:center;padding:56px 0 18px}
@@ -179,7 +191,7 @@ table.kvt td:first-child{color:var(--muted);width:42%}
     <div class="ms" id="ms">
       <button class="ms-btn" id="msBtn" aria-haspopup="true"><span id="msName">GPT-OSS 120B</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
-      <div class="ms-menu" id="msMenu"><div class="ms-head">Model · Groq</div></div>
+      <div class="ms-menu" id="msMenu"></div>
     </div>
     <div class="spacer"></div>
     <span class="chip hide-s"><b>●</b> Runs in your browser · nothing stored</span>
@@ -201,18 +213,22 @@ table.kvt td:first-child{color:var(--muted);width:42%}
       </div>
       <div class="row">
         <div class="field"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6E76" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          <input type="password" id="key" placeholder="Groq API key (gsk_…) · kept in this tab only" autocomplete="off" spellcheck="false"></div>
+          <input type="password" id="key" placeholder="Any LLM API key · Groq, OpenAI, Anthropic, Gemini, OpenRouter… · kept in this tab only" autocomplete="off" spellcheck="false"><span class="prov" id="prov"></span></div>
         <button class="ghost" id="optBtn">Options</button>
         <button class="primary" id="go" disabled>Find promos</button>
       </div>
       <div class="opts" id="opts">
+        <label>Provider <select id="provSel"></select></label>
+        <label id="baseWrap" style="display:none">Base URL <input type="text" class="wide" id="baseUrl" placeholder="https://your-endpoint/v1"></label>
+        <label>Model <input type="text" class="wide" id="modelOverride" placeholder="optional · overrides the menu"></label>
         <label>Episodes <input type="text" id="eps" placeholder="all (e.g. 1-10)"></label>
         <label><input type="checkbox" id="mont"> Cross-episode montages (experimental)</label>
         <label style="flex-basis:100%">HF token for video preview (optional, uses your own free GPU minutes)</label>
         <div class="field" style="flex-basis:100%"><input type="password" id="hftok" placeholder="hf_… · kept in this tab only" autocomplete="off"></div>
       </div>
-      <div class="hint">No key? Leave it empty to run the <b>rules-only baseline</b> (each episode's written-in ending, no AI).<br>
-        Free key: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>. Files and keys never leave this browser except the screenplay text sent to Groq.</div>
+      <div class="hint">Paste a key from <b>any</b> provider: it is detected automatically and its models appear in the menu at the top. Any other OpenAI-compatible endpoint: Options → Provider → Custom.<br>
+        No key? Leave it empty to run the <b>rules-only baseline</b> (no AI). Free key: <a href="https://console.groq.com/keys" target="_blank" rel="noopener">console.groq.com/keys</a>.
+        Files and keys never leave this browser except the screenplay text sent to the provider you chose.</div>
     </div>
     <div class="prog" id="prog"><div class="lbl"><span id="progT">Starting…</span><span id="progN"></span></div><div class="track"><div class="fill" id="progF"></div></div></div>
     <div class="err" id="err"></div>
@@ -263,7 +279,7 @@ self.onmessage = async (ev) => {
       for (const f of py.FS.readdir("/input")) if (f !== "." && f !== "..") py.FS.unlink("/input/" + f);
       for (const f of m.files) py.FS.writeFile("/input/" + f.name, new Uint8Array(f.bytes));
       const zips = m.files.filter(f => f.name.toLowerCase().endsWith(".zip"));
-      py.globals.set("ARGS", py.toPy({key: m.key, model: m.model, episodes: m.episodes, montage: m.montage,
+      py.globals.set("ARGS", py.toPy({key: m.key, model: m.model, provider: m.provider, base: m.base, headers: m.headers || {}, episodes: m.episodes, montage: m.montage,
                                       input: zips.length ? "/input/" + zips[0].name : "/input"}));
       py.globals.set("_post", (s) => post({type: "progress", data: s}));
       const out = py.runPython(`
@@ -272,7 +288,13 @@ from promo_finder.pipeline import run_pipeline, to_rows
 import pandas as pd
 a = ARGS.to_py() if hasattr(ARGS, "to_py") else ARGS
 key = (a["key"] or "").strip()
-cfg = LLMConfig.from_env("groq" if key else "none", a["model"] if key else None, None, key or None)
+if not key:
+    cfg = LLMConfig.from_env("none")
+elif a["provider"] == "groq":
+    cfg = LLMConfig.from_env("groq", a["model"], None, key)
+else:                                   # any OpenAI-compatible endpoint (OpenAI, Anthropic, Gemini, OpenRouter, custom...)
+    cfg = LLMConfig.from_env("custom", a["model"], a["base"], key)
+    cfg.provider, cfg.extra_headers = a["provider"], dict(a["headers"] or {})
 res = run_pipeline(a["input"], cfg, out_root="/out", episodes=(a["episodes"] or None), montage=bool(a["montage"]),
                    cache_dir="/cache", progress=lambda i, n, ep: _post(json.dumps([i, n, ep])))
 STATE["res"], STATE["cfg"] = res, cfg
@@ -281,6 +303,13 @@ json.dumps({k: res[k] for k in ("ranked", "baseline", "montages", "rejected", "m
            | {"episodes": [e.to_dict() for e in res["episodes"]], "llm": cfg.enabled}, default=str)
 `);
       post({type: "result", json: out});
+    }
+    if (m.type === "failures") {
+      const out = py.runPython(`
+import promo_finder.failure
+json.dumps(promo_finder.failure.failure_report(STATE["res"], STATE["cfg"]), default=str)
+`);
+      post({type: "failures", json: out});
     }
     if (m.type === "prompts") {
       py.globals.set("CID", m.id);
@@ -302,11 +331,24 @@ json.dumps(promo_finder.preview.shot_prompts(c, STATE["ep_by_num"], STATE["cfg"]
 <script type="module">
 import { Client } from "https://cdn.jsdelivr.net/npm/@gradio/client@2.7.2/dist/index.min.js";
 
-const MODELS = [
+const MODELS = [      // curated Groq picks (shown first; also the menu before any key is pasted)
   ["openai/gpt-oss-120b", "GPT-OSS 120B", "Default · strongest judgement · used for the submitted run"],
   ["openai/gpt-oss-20b", "GPT-OSS 20B", "Smaller and cheaper · good for quick drafts"],
   ["qwen/qwen3.8-27b", "Qwen 3.8 27B", "Different model family · compare its picks"],
 ];
+const ANTH_HDR = {"anthropic-dangerous-direct-browser-access": "true"};
+const PROVIDERS = [   // all OpenAI-compatible; browser access (CORS) checked for each
+  {id: "groq", name: "Groq", base: "https://api.groq.com/openai/v1", re: /^gsk_/},
+  {id: "anthropic", name: "Anthropic", base: "https://api.anthropic.com/v1", re: /^sk-ant-/, headers: ANTH_HDR},
+  {id: "openrouter", name: "OpenRouter", base: "https://openrouter.ai/api/v1", re: /^sk-or-/},
+  {id: "gemini", name: "Google Gemini", base: "https://generativelanguage.googleapis.com/v1beta/openai", re: /^AIza/},
+  {id: "openai", name: "OpenAI", base: "https://api.openai.com/v1", re: /^sk-/},
+  {id: "deepseek", name: "DeepSeek", base: "https://api.deepseek.com"},
+  {id: "mistral", name: "Mistral", base: "https://api.mistral.ai/v1"},
+  {id: "together", name: "Together", base: "https://api.together.xyz/v1"},
+  {id: "custom", name: "Custom (OpenAI-compatible)", base: ""},
+];
+const NOT_CHAT = /embed|whisper|tts|speech|audio|image|dall-e|moderation|realtime|transcri|rerank|guard|sora|veo|imagen/i;
 const VIDEO_SPACE = "Lightricks/LTX-2-3";
 let SAMPLES = [];
 try { SAMPLES = JSON.parse(document.getElementById("samples").textContent).filter(x => Object.keys(x.clips || {}).length); } catch (e) { SAMPLES = []; }
@@ -335,20 +377,69 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = (t) => { t = Number(t) || 0; const m = Math.floor(t / 60), s = t - m * 60; return String(m).padStart(2, "0") + ":" + s.toFixed(2).padStart(5, "0"); };
 
-const S = { model: MODELS[0][0], files: [], res: null, eps: {}, tab: "ranked", sel: {}, decisions: {}, ready: false, pending: null, prompts: {}, videos: {} };
+const S = { model: MODELS[0][0], provider: null, models: [], modelErr: "", files: [], res: null, eps: {}, tab: "ranked", sel: {}, decisions: {}, ready: false, pending: null, prompts: {}, videos: {} };
 
-/* ---------- model switcher ---------- */
-function drawModels() {
-  const menu = $("msMenu");
-  menu.querySelectorAll(".ms-item").forEach(n => n.remove());
-  for (const [id, name, desc] of MODELS) {
-    const b = document.createElement("button");
-    b.className = "ms-item" + (id === S.model ? " on" : "");
-    b.innerHTML = `<div><div class="t">${name}</div><div class="d">${desc}</div></div><span class="ck">✓</span>`;
-    b.onclick = () => { S.model = id; $("msName").textContent = name; $("ms").classList.remove("open"); drawModels(); };
-    menu.appendChild(b);
-  }
+/* ---------- provider detection + model switcher ---------- */
+const provById = (id) => PROVIDERS.find(p => p.id === id);
+const modelLabel = (id) => (MODELS.find(x => x[0] === id) || [id, id])[1];
+$("provSel").innerHTML = `<option value="auto">Auto-detect from key</option>` + PROVIDERS.map(p => `<option value="${p.id}">${p.name}</option>`).join("");
+function currentProvider() {
+  const key = $("key").value.trim(), sel = $("provSel").value;
+  if (!key) return null;
+  if (sel !== "auto") return provById(sel);
+  return PROVIDERS.find(p => p.re && p.re.test(key)) || null;
 }
+const baseOf = (p) => p.id === "custom" ? $("baseUrl").value.trim().replace(/\/+$/, "") : p.base;
+let listTimer = null;
+function onKeyChange() {
+  const p = currentProvider(), key = $("key").value.trim();
+  $("baseWrap").style.display = $("provSel").value === "custom" ? "" : "none";
+  $("prov").className = "prov"; $("prov").textContent = !key ? "" : p ? p.name : "provider? → Options";
+  if (!key) { $("prov").textContent = ""; }
+  if (key && !p) $("prov").classList.add("bad");
+  S.provider = p; S.models = []; S.modelErr = "";
+  if (!p || !key) { if (!MODELS.some(x => x[0] === S.model)) S.model = MODELS[0][0]; return drawModels(); }
+  clearTimeout(listTimer); listTimer = setTimeout(() => loadModels(p, key), 500);
+  drawModels();
+}
+async function loadModels(p, key) {
+  const base = baseOf(p);
+  if (!base) { S.modelErr = "Enter the base URL in Options."; return drawModels(); }
+  try {
+    const headers = p.id === "anthropic" ? {"x-api-key": key, "anthropic-version": "2023-06-01", ...ANTH_HDR} : {"Authorization": "Bearer " + key};
+    const r = await fetch(base + "/models" + (p.id === "anthropic" ? "?limit=100" : ""), {headers});
+    if (r.status === 401 || r.status === 403) throw new Error(`${p.name} rejected this key (${r.status})`);
+    if (!r.ok) throw new Error(`couldn't list models (HTTP ${r.status}); type a model name in Options`);
+    const d = await r.json(), arr = d.data || d.models || [];
+    const rows = arr.map(m => ({id: String(m.id || m.name || "").replace(/^models\//, ""), t: Number(m.created || Date.parse(m.created_at || "") / 1000 || 0)}))
+                    .filter(m => m.id && !NOT_CHAT.test(m.id)).sort((x, y) => y.t - x.t);
+    if (currentProvider() !== p) return;                     // key/provider changed while loading
+    S.models = rows.map(m => m.id);
+    if (p.id === "groq") S.models = [...MODELS.map(x => x[0]).filter(id => S.models.includes(id)), ...S.models.filter(id => !MODELS.some(x => x[0] === id))];
+    if (!S.models.includes(S.model)) S.model = S.models[0] || "";
+    $("prov").textContent = `${p.name} · ${S.models.length} models`;
+  } catch (e) {
+    S.modelErr = String(e.message || e); S.model = ""; $("prov").textContent = p.name + " · check key"; $("prov").classList.add("bad");
+  }
+  drawModels();
+}
+function drawModels(filter = "") {
+  const menu = $("msMenu"), p = S.provider, live = !!(p && S.models.length);
+  const ids = live ? S.models : (p && S.modelErr) ? [] : MODELS.map(x => x[0]);
+  const shown = ids.filter(id => !filter || id.toLowerCase().includes(filter.toLowerCase())).slice(0, 200);
+  menu.innerHTML = `<div class="ms-head">Model · ${p ? esc(p.name) : "Groq (default)"}</div>` +
+    (live && ids.length > 8 ? `<input class="ms-search" id="msSearch" placeholder="Search ${ids.length} models…" value="${esc(filter)}">` : "") +
+    (S.modelErr ? `<div class="ms-note" style="color:#FF8A8F">${esc(S.modelErr)}</div>` : !p ? `<div class="ms-note">Paste any provider's key below to see its models here.</div>` : "") +
+    `<div class="ms-list">${shown.map(id => { const cur = MODELS.find(x => x[0] === id);
+      return `<button class="ms-item ${id === S.model ? "on" : ""}" data-id="${esc(id)}"><div><div class="t">${esc(cur ? cur[1] : id)}</div>${cur ? `<div class="d">${esc(cur[2])}</div>` : ""}</div><span class="ck">✓</span></button>`; }).join("")}</div>`;
+  menu.querySelectorAll(".ms-item").forEach(b => b.onclick = (e) => { e.stopPropagation(); S.model = b.dataset.id; $("ms").classList.remove("open"); drawModels(); });
+  const q = $("msSearch"); if (q) { q.onclick = (e) => e.stopPropagation(); q.oninput = () => { drawModels(q.value); const n = $("msSearch"); n.focus(); n.setSelectionRange(n.value.length, n.value.length); }; }
+  $("msName").textContent = $("modelOverride").value.trim() || (S.model ? modelLabel(S.model) : "Choose a model");
+}
+$("key").addEventListener("input", onKeyChange);
+$("provSel").onchange = onKeyChange;
+$("baseUrl").addEventListener("input", onKeyChange);
+$("modelOverride").addEventListener("input", () => drawModels());
 $("msBtn").onclick = (e) => { e.stopPropagation(); $("ms").classList.toggle("open"); };
 document.addEventListener("click", (e) => { if (!$("ms").contains(e.target)) $("ms").classList.remove("open"); });
 drawModels();
@@ -376,14 +467,18 @@ worker.onmessage = (ev) => {
   const m = ev.data;
   if (m.type === "status") progress(m.text, "", 3);
   if (m.type === "ready") { S.ready = true; if (S.pending) { worker.postMessage(S.pending); progress("Reading screenplays…", "", 5); } else $("prog").classList.remove("show"); }
-  if (m.type === "progress") { const [i, n, ep] = JSON.parse(m.data); progress(`Episode ${ep} ${S.pending.key ? "· asking " + MODELS.find(x => x[0] === S.model)[1] : "· rules-only baseline"}`, `${i} / ${n}`, 5 + 92 * i / n); }
+  if (m.type === "progress") { const [i, n, ep] = JSON.parse(m.data); progress(`Episode ${ep} ${S.pending.key ? "· asking " + modelLabel(S.pending.model) : "· rules-only baseline"}`, `${i} / ${n}`, 5 + 92 * i / n); }
   if (m.type === "result") { S.pending = null; progress("Ranking…", "", 100); showResults(JSON.parse(m.json)); }
+  if (m.type === "failures") { S.fail = JSON.parse(m.json); if (S.tab === "badly") drawBadly(); }
   if (m.type === "prompts") { S.prompts[m.id] = JSON.parse(m.json); renderVideo(m.id); }
   if (m.type === "error") {
+    if (m.where === "failures") { S.fail = {error: m.text}; if (S.tab === "badly") drawBadly(); return; }
     if (m.where === "prompts") { S.prompts[S.awaiting] = {error: m.text}; renderVideo(S.awaiting); return; }
     S.pending = null; $("go").disabled = false; $("prog").classList.remove("show");
     let t = m.text;
-    if (/401|invalid api key/i.test(t)) t = "Groq rejected the key (401). Check it at console.groq.com/keys.";
+    const pn = S.lastProvider || "The provider";
+    if (/HTTP 40[13]|invalid.{0,10}key|unauthori[sz]ed/i.test(t)) t = `${pn} rejected the key. Check the key and the provider in Options.`;
+    else if (/HTTP 404|model.{0,40}(not found|does not exist)/i.test(t)) t = `${pn} doesn't know the model "${S.lastModel}". Pick another in the model menu.`;
     $("err").textContent = t; $("err").classList.add("show");
   }
 };
@@ -393,9 +488,15 @@ $("go").onclick = async () => {
   $("err").classList.remove("show"); $("go").disabled = true;
   const files = await Promise.all(S.files.map(async f => ({name: f.name, bytes: await f.arrayBuffer()})));
   const key = $("key").value.trim();
-  if (key && !/^gsk_/.test(key)) { $("err").textContent = "That doesn't look like a Groq key (they start with gsk_)."; $("err").classList.add("show"); $("go").disabled = false; return; }
-  S.pending = {type: "run", files, key, model: S.model, episodes: $("eps").value.trim(), montage: $("mont").checked};
-  S.prompts = {}; S.videos = {}; S.decisions = {};
+  const p = currentProvider(), model = $("modelOverride").value.trim() || S.model;
+  const fail = (t) => { $("err").textContent = t; $("err").classList.add("show"); $("go").disabled = false; };
+  if (key && !p) return fail("Couldn't tell which provider this key is for. Choose it in Options → Provider.");
+  if (key && p.id === "custom" && !baseOf(p)) return fail("Custom provider: enter the base URL in Options (e.g. https://your-endpoint/v1).");
+  if (key && !model) return fail("Choose a model in the menu at the top (or type one in Options → Model).");
+  S.lastProvider = p ? p.name : ""; S.lastModel = model;
+  S.pending = {type: "run", files, key, model, provider: p ? p.id : "none", base: p ? baseOf(p) : "", headers: (p && p.headers) || {},
+               episodes: $("eps").value.trim(), montage: $("mont").checked};
+  S.prompts = {}; S.videos = {}; S.decisions = {}; S.fail = null;
   if (S.ready) { worker.postMessage(S.pending, files.map(f => f.bytes)); progress("Reading screenplays…", "", 5); }
   else progress("Loading Python runtime (first time ~20 MB)…", "", 3);
 };
@@ -407,7 +508,7 @@ function showResults(r) {
   $("start").style.display = "none"; $("results").classList.add("show"); $("prog").classList.remove("show");
   const meta = r.meta, u = meta.usage || {};
   const cov = (r.metrics.episode_coverage || {});
-  $("rmeta").textContent = r.llm ? `${MODELS.find(x => x[0] === meta.llm.model)?.[1] || meta.llm.model} · prompt ${meta.prompt_version}` : "Rules-only baseline · no AI";
+  $("rmeta").textContent = r.llm ? `${modelLabel(meta.llm.model)} · ${esc(provById(meta.llm.provider)?.name || meta.llm.provider)} · prompt ${meta.prompt_version}` : "Rules-only baseline · no AI";
   const ship = r.metrics.shipped_invariant_violations;
   const stats = [
     [cov.episodes_processed ?? meta.episodes_processed.length, "Episodes"],
@@ -425,6 +526,7 @@ function lists() {
   if (r.montages.length) L.push(["montages", "Montages · experimental", r.montages]);
   L.push(["baseline", r.llm ? "Baseline (no AI)" : "Ranked (baseline)", r.baseline]);
   L.push(["rejected", "Rejected", r.rejected]);
+  L.push(["badly", "Where it picks badly", null]);
   if (SAMPLES.length) L.push(["samples", "Sample preview", SAMPLES]);
   L.push(["metrics", "Run metrics", null]);
   return L;
@@ -434,6 +536,7 @@ function drawTabs() {
   $("tabs").querySelectorAll(".tab").forEach(b => b.onclick = () => { S.tab = b.dataset.k; drawTabs(); });
   const [, , arr] = lists().find(x => x[0] === S.tab);
   if (S.tab === "metrics") return drawMetrics();
+  if (S.tab === "badly") return drawBadly();
   if (S.tab === "samples") { $("tabBody").innerHTML = samplesHtml(false); return; }
   if (S.tab === "rejected") return drawRejected(arr);
   if (!arr.length) { $("tabBody").innerHTML = `<div class="panel empty">Nothing here for this run.</div>`; return; }
@@ -487,10 +590,42 @@ function drawDetail(c) {
   $("pvBtn").onclick = () => startPreview(c);
   if (S.prompts[c.id]) renderVideo(c.id);
 }
+function drawBadly() {
+  const r = S.res;
+  if (!S.fail) { S.fail = {loading: true}; worker.postMessage({type: "failures"}); }
+  const F = S.fail, ev = F.evidence;
+  const who = r.llm ? modelLabel(r.meta.llm.model) : "";
+  let head = "";
+  if (F.loading) head = `<div class="panel" style="margin-bottom:12px"><span class="spin"></span>${r.llm ? `${esc(who)} is reviewing this run's evidence and writing where the tool picks badly…` : "Collecting the evidence…"}</div>`;
+  else if (F.error && !ev) head = `<div class="panel warn" style="margin-bottom:12px;color:var(--amber)">Couldn't build the analysis: ${esc(F.error)}</div>`;
+  let body = "";
+  if (ev) {
+    const pct = (v) => v == null ? "—" : Math.round(v * 100) + "%";
+    const tiles = [[ev.promos_ranked, "promos ranked"], [Object.values(ev.flag_counts_top_k).reduce((a, b) => a + b, 0), `flags in the top ${ev.top_k}`],
+      [pct(ev.weak_or_slow_open_share.ai_top) + " vs " + pct(ev.weak_or_slow_open_share.baseline_top), "weak/slow opens · AI vs no-AI"],
+      [pct(ev.resolved_ending_share.ai_top) + " vs " + pct(ev.resolved_ending_share.baseline_top), "resolved endings · AI vs no-AI"],
+      [pct(ev.quote_accuracy), "model quotes matching the script"], [Object.values(ev.rejected_or_dropped).reduce((a, b) => a + b, 0), "proposals rejected or merged"]];
+    const a = F.analysis;
+    const analysis = a ? `<div class="panel" style="margin-bottom:12px"><div style="font-size:15px;line-height:1.55">${esc(a.summary)}</div>
+        <div class="tagline" style="font-size:12px;color:var(--dim);margin-top:6px">Written by ${esc(modelLabel(F.model || ""))} from the evidence below only.</div></div>` +
+      (a.patterns || []).map((x, i) => `<div class="fail-card"><h4>${i + 1}. ${esc(x.title)}</h4>
+        <div class="row2"><b>How often:</b> ${esc(x.how_often)}</div><div class="row2"><b>Example:</b> ${esc(x.example)}</div>
+        <div class="row2"><b>Why:</b> ${esc(x.why)}</div><div class="row2"><b>Editor should check:</b> ${esc(x.editor_check)}</div>
+        <div class="row2"><b>Fix:</b> ${esc(x.fix)}</div></div>`).join("") +
+      (a.trust ? `<div class="panel" style="margin-bottom:12px"><b>What you can trust as-is:</b> ${esc(a.trust)}</div>` : "")
+      : !F.loading ? `<div class="panel" style="margin-bottom:12px;color:var(--muted)">${r.llm ? "The model couldn't write the analysis" + (F.error ? ` (${esc(F.error)})` : "") + ". The evidence below is still accurate." : "Add an API key and re-run to have an LLM write this analysis. Below is the evidence the code collected."}</div>` : "";
+    const flags = Object.entries(ev.flag_counts_all).sort((x, y) => y[1] - x[1]).map(([f, n]) =>
+      `<tr><td>${esc(f)} <span style="color:var(--dim)">· ${esc(ev.flag_meaning[f] || "")}</span></td><td><b>${n}</b> of ${ev.promos_ranked} (${ev.flag_counts_top_k[f] || 0} in top ${ev.top_k})</td></tr>`).join("");
+    body = analysis + `<div class="ev-grid">${tiles.map(([v, k]) => `<div class="stat"><div class="v" style="font-size:19px">${esc(v)}</div><div class="k">${esc(k)}</div></div>`).join("")}</div>
+      <div class="panel"><div style="font-weight:700;margin-bottom:8px">Evidence · warning flags</div><table class="kvt">${flags || "<tr><td>No flags</td><td></td></tr>"}</table>
+      <div style="font-weight:700;margin:14px 0 6px">Always true for this tool</div><ul style="margin:0;color:#C9CBD1;font-size:13.5px;line-height:1.6">${ev.always_true_limits.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+  }
+  $("tabBody").innerHTML = head + body;
+}
 function drawRejected(arr) {
   if (!arr.length) { $("tabBody").innerHTML = `<div class="panel empty">No proposals were rejected.</div>`; return; }
   $("tabBody").innerHTML = `<div class="panel"><table class="kvt">${arr.map(c => `<tr><td>${esc(c.id)} · ${esc((c.segments || []).map(s => "Ep " + s.episode + " " + s.start_id + "–" + s.end_id).join(" + "))}</td>
-    <td><b>${esc(c.reject_reason || (c.status === "duplicate" ? "duplicate" : c.status))}</b><div style="color:var(--muted)">${esc(c.hook || "")}</div></td></tr>`).join("")}</table></div>`;
+    <td><b>${esc(c.reject_reason ? "rejected: " + c.reject_reason.replaceAll("_", " ") : c.dropped_as ? `merged: ${c.dropped_as === "overlap" ? "overlaps" : "repeats"} the better-ranked ${c.duplicate_of}` : c.status)}</b><div style="color:var(--muted)">${esc(c.hook || "")}</div></td></tr>`).join("")}</table></div>`;
 }
 function drawMetrics() {
   const r = S.res, m = r.meta, u = m.usage || {};
@@ -539,9 +674,11 @@ function renderVideo(id) {
   else if (V.state === "done" && V.sample) msg = "Pre-rendered preview of this promo (generated earlier on the free LTX-2.3 GPU, so it plays instantly). AI-generated prototype, not the real footage. Storyboard of the actual cut below.";
   else if (V.state === "done") msg = "Video prototype from the screenplay (AI-generated, not the real footage). Storyboard of the actual cut below.";
   const vids = ["hook_shot", "cliff_shot"].filter(k => V.clips[k]).map(k => `<figure><video src="${esc(V.clips[k])}" controls playsinline loop></video><figcaption>${k === "hook_shot" ? "Opening · hook" : "Ending · cliffhanger"}</figcaption></figure>`).join("");
-  pv.innerHTML = `<div class="pv-msg ${V.state === "failed" ? "warn" : ""}">${msg}</div>${vids ? `<div class="videos">${vids}</div>` : ""}
+  const sampleBtn = (!vids && !P.loading && V.state !== "running" && SAMPLES.length) ? `<button class="ghost" id="goSamples" style="margin-bottom:12px">▶ Watch the pre-rendered sample preview</button>` : "";
+  pv.innerHTML = `<div class="pv-msg ${V.state === "failed" ? "warn" : ""}">${msg}</div>${vids ? `<div class="videos">${vids}</div>` : sampleBtn}
     <div class="pv-msg">Storyboard · the promo's real lines in order</div>${storyboard(c)}
     ${P.hook_shot ? `<details class="prompts"><summary>Shot prompts (${P.source === "llm" ? "written by the LLM" : "template, no AI"})</summary><pre>${esc(P.hook_shot)}\n\n${esc(P.cliff_shot)}</pre></details>` : ""}`;
+  if ($("goSamples")) $("goSamples").onclick = () => { S.tab = "samples"; drawTabs(); window.scrollTo({top: $("tabs").offsetTop - 10, behavior: "smooth"}); };
   if (P.hook_shot && V.state === "idle") generate(id);
   if (P.error && V.state === "idle") { V.state = "failed"; V.note = "Couldn't write shot prompts (" + P.error + "). The storyboard still shows the promo."; renderVideo(id); }
 }

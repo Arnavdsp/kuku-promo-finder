@@ -129,3 +129,13 @@ def test_preview_prompts_fall_back_without_llm(tmp_path):
     p = shot_prompts(c, {1: ep}, None)
     assert p["source"] == "template"
     assert "How dare you lie to me!" in p["hook_shot"]
+
+
+def test_failure_evidence_without_llm(tmp_path):
+    """'Where it picks badly': evidence is built by code; with no LLM the report still returns it."""
+    from promo_finder.failure import failure_report
+    ep = _ep(tmp_path)
+    c = apply_scores([validate(_raw(ep, "E001", "E004"), {1: ep}, {"ANNA", "BEN"})], 1)
+    c[0]["rank"] = 1
+    rep = failure_report({"ranked": c, "baseline": [], "rejected": [], "metrics": {}, "meta": {}}, None)
+    assert rep["source"] == "evidence-only" and rep["evidence"]["promos_ranked"] == 1
