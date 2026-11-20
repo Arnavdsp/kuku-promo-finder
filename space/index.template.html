@@ -363,7 +363,7 @@ function samplesHtml(intro) {
       <div>${e(seg)} · ${Number(x.duration || 0).toFixed(0)}s</div>
       <div style="margin-top:8px"><b style="color:var(--red)">HOOK</b> “${e(x.hook_text)}”</div>
       <div><b style="color:var(--amber)">CLIFF</b> “${e(x.cliffhanger_text)}”</div>
-      <div class="tagline">Pre-rendered with LTX-2.3 (free GPU) from shot prompts written by GPT-OSS 120B from the real lines. AI-generated prototype, not the show's footage. Ranking never depends on it.</div></div></div>`;
+      <div class="tagline">Pre-rendered with ${e(x.video_model || "LTX-2.3 (free GPU, with audio)")} from shot prompts written by GPT-OSS 120B from the real lines. AI-generated prototype, not the show's footage. Ranking never depends on it.</div></div></div>`;
   }).join("");
 }
 function sampleFor(c) {     // same moment: same episode(s) and >= 60% time overlap per segment
