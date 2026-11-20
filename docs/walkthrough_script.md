@@ -7,13 +7,14 @@
 - the model answers with event IDs, never timestamps, so it can't invent times;
 - the summary shows validity, the reasons for rejections, and the token cost.
 
-**0:50–1:50 · The app.** Run `streamlit run app.py` and upload episodes.
+**0:50–1:50 · The app.** Open the private Hugging Face Space (runs in the browser, nothing stored), paste a Groq key and drop the episodes.
 - The ranked table shows segments with timestamps.
 - Open #1 and show the script excerpt, with the hook and cliffhanger lines marked.
 - Show the score breakdown bar chart and the "post first because…" line.
 - Open a flagged clip (e.g. a `resolved_ending` flag on a reveal line) and explain that this is where the rule and the model disagree, so the editor decides.
 - Accept or reject, then export the CSV.
 - Show the Rejected tab: the code throws out what the model gets wrong.
+- Click "Preview promo": the storyboard of the real lines always shows; the LTX video clip appears if free GPU time is left.
 
 **1:50–2:20 · Swap the model.** Show `--provider custom --base-url … --model …`. No code changes are needed, and the cache makes reruns free.
 

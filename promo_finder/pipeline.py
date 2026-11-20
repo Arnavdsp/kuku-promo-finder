@@ -1,4 +1,4 @@
-"""Orchestrates the stages. Shared by run.py (CLI) and app.py (Streamlit)."""
+"""Orchestrates the stages. Shared by run.py (CLI), the notebook and the browser Space (via Pyodide)."""
 from __future__ import annotations
 
 import json

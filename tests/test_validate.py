@@ -113,3 +113,19 @@ def test_similarity_short_lines():
     from promo_finder.validate import similarity
     assert similarity("No", "I know you") < 0.85
     assert similarity("You will regret this, Anna.", "you will regret this anna") == 1.0
+
+
+def test_extract_json_strips_reasoning():
+    from promo_finder.llm import extract_json
+    assert extract_json('<think>maybe {"x": 1}?</think>\n{"promos": []}') == {"promos": []}
+    assert extract_json('```json\n{"promos": [1]}\n```') == {"promos": [1]}
+
+
+def test_preview_prompts_fall_back_without_llm(tmp_path):
+    """The video preview is optional: with no LLM it still builds prompts from the real lines."""
+    from promo_finder.preview import shot_prompts
+    ep = _ep(tmp_path)
+    c = validate(_raw(ep, "E001", "E004"), {1: ep}, {"ANNA", "BEN"})
+    p = shot_prompts(c, {1: ep}, None)
+    assert p["source"] == "template"
+    assert "How dare you lie to me!" in p["hook_shot"]

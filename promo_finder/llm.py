@@ -78,7 +78,7 @@ class LLMConfig:
 
 def extract_json(text: str) -> dict:
     """Parse JSON even if the model wrapped it in prose or ```json fences."""
-    text = text.strip()
+    text = re.sub(r"<think>.*?(</think>|$)", "", text, flags=re.S).strip()   # reasoning models (e.g. Qwen) may think aloud
     text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text)
     try:
         return json.loads(text)
