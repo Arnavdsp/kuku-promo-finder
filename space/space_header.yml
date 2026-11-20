@@ -1,0 +1,10 @@
+---
+title: Promo Finder
+emoji: 🎬
+colorFrom: red
+colorTo: yellow
+sdk: static
+app_file: index.html
+short_description: Find and rank hook-to-cliffhanger microdrama promos
+pinned: false
+---

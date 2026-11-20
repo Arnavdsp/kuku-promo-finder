@@ -15,5 +15,6 @@ html = (root / "index.template.html").read_text().replace("/*__PY_SOURCES__*/", 
 dist = root / "dist"
 dist.mkdir(exist_ok=True)
 (dist / "index.html").write_text(html)
-(dist / "README.md").write_text((root / "README.space.md").read_text())
+# Space README = Hugging Face settings header + the exact same README as GitHub
+(dist / "README.md").write_text((root / "space_header.yml").read_text() + "\n" + (root.parent / "README.md").read_text())
 print(f"wrote {dist/'index.html'} ({len(html)//1024} KB, {len(sources)} python modules)")
