@@ -1,4 +1,4 @@
-# 🎬 Promo Finder
+# Promo Finder
 
 **Screenplays in → ranked 20–60 second promos out.**
 Built for Kuku's AI Generalist assignment (Problem 1).
@@ -7,18 +7,18 @@ Built for Kuku's AI Generalist assignment (Problem 1).
 
 ---
 
-## 🤔 The problem
+## The problem
 
 A microdrama show has ~50 short episodes. To advertise it, Kuku needs **promos**: short clips from the show that make a scrolling stranger stop and download the app.
 
 ```
- ┌─────────────── a good promo (20–60s) ───────────────┐
- │  0–3s         middle                       last line │
- │  🪝 HOOK  ──▶  builds the situation  ──▶  🧗 CLIFF   │
- │  slap, shock,  a stranger can follow      question,  │
- │  reveal                                   threat,    │
- │                                           unresolved │
- └──────────────────────────────────────────────────────┘
+ ┌──────────────── a good promo (20–60s) ─────────────────┐
+ │  first 3s        middle                    last line   │
+ │  HOOK     ──▶    builds the situation ──▶  CLIFF       │
+ │  slap, shock,    a stranger can follow     question,   │
+ │  reveal                                    threat,     │
+ │                                            unresolved  │
+ └────────────────────────────────────────────────────────┘
 ```
 
 Today an editor **watches ~100 minutes** of footage to find them.
@@ -26,40 +26,40 @@ This tool **reads the screenplays** and hands the editor a **ranked shortlist wi
 
 ---
 
-## 🗺️ How it works
+## How it works
 
 ```mermaid
 flowchart LR
-    A["📄 Screenplays<br/>.txt / .zip"] --> B["1️⃣ Parse<br/><i>code</i>"]
-    B --> C["2️⃣ Propose<br/><b>AI</b> · 1 call / episode"]
-    C --> D["3️⃣ Check<br/><i>code</i>"]
-    D --> E["4️⃣ Rank<br/><i>code</i>"]
-    E --> F["5️⃣ Review<br/>👤 human"]
-    F --> G["✅ Promo list<br/>CSV"]
-    D -. rejected, with reason .-> R["🗑️ Rejected"]
+    A["Screenplays<br/>.txt / .zip"] --> B["1 Parse<br/><i>code</i>"]
+    B --> C["2 Propose<br/><b>AI</b> · 1 call / episode"]
+    C --> D["3 Check<br/><i>code</i>"]
+    D --> E["4 Rank<br/><i>code</i>"]
+    E --> F["5 Review<br/> human"]
+    F --> G["Promo list<br/>CSV"]
+    D -. rejected, with reason .-> R["Rejected"]
     B --> H["Baseline<br/><i>no AI</i>"] --> D
 ```
 
 | Step | Who | What happens | Why it's done this way |
 |---|---|---|---|
 | **1 Parse** | code | Every line becomes an event with an ID: `E001`, `E002`… plus its real start/end time | IDs let the AI point at lines without writing timestamps |
-| **2 Propose** | 🤖 **AI** | Per episode, the AI suggests 0–5 promos as **ID ranges** (`E003 → E012`) + hook, cliffhanger, reason, 1–5 scores | The only step that needs taste. It may return 0, so no filler |
+| **2 Propose** | **AI** | Per episode, the AI suggests 0–5 promos as **ID ranges** (`E003 → E012`) + hook, cliffhanger, reason, 1–5 scores | The only step that needs taste. It may return 0, so no filler |
 | **3 Check** | code | IDs → real times · never cut mid-line · **reject** if not 20–60s / bad IDs · **flag** slow opens, calm endings, unknown names, recaps, wrong quotes · remove duplicates | Rules that can be checked exactly are free, fast and never hallucinate |
 | **4 Rank** | code | Priority score (below) + max 2 promos per episode in the top 10 + a "post first because…" line | Transparent and adjustable |
-| **5 Review** | 👤 human | Read the real lines (HOOK 🔴 / CLIFF 🟠), see the score breakdown, **Accept / Reject**, export | The final call stays with the editor |
+| **5 Review** | human | Read the real lines (HOOK in red, CLIFF in amber), see the score breakdown, **Accept / Reject**, export | The final call stays with the editor |
 
 ### Why IDs instead of timestamps?
 
 ```
- ❌ AI writes "01:12.30 → 01:46.60"   →  numbers can be misread or invented
- ✅ AI writes "E032 → E042"            →  code looks up the real times from the screenplay
+ Wrong: AI writes "01:12.30 → 01:46.60"   →  numbers can be misread or invented
+ Right: AI writes "E032 → E042"            →  code looks up the real times from the screenplay
 ```
 
 **The tool cannot invent a timestamp or a line of dialogue.**
 
 ---
 
-## 🧮 The priority score
+## The priority score
 
 ```
 priority = 0.35 × hook  +  0.30 × cliffhanger  +  0.25 × makes-sense-alone  +  0.10 × early-episode  −  flag penalty
@@ -79,12 +79,12 @@ pie showData title Score weights
 
 ---
 
-## 🧪 How we know it's good
+## How we know it's good
 
 ```mermaid
 flowchart LR
-    R["Run"] --> A["🤖 Automatic checks<br/>valid IDs · quotes match · 20–60s ·<br/>episodes covered · duplicates · tokens · time"]
-    R --> H["👤 Blind human review<br/>AI picks mixed with no-AI baseline,<br/>rated 1–3 without knowing which is which"]
+    R["Run"] --> A["Automatic checks<br/>valid IDs · quotes match · 20–60s ·<br/>episodes covered · duplicates · tokens · time"]
+    R --> H["Blind human review<br/>AI picks mixed with no-AI baseline,<br/>rated 1–3 without knowing which is which"]
     H --> M["Precision@10 · AI vs baseline ·<br/>does the score order match human taste?"]
 ```
 
@@ -92,17 +92,17 @@ flowchart LR
 
 ---
 
-## 🧰 Three ways to use it
+## Three ways to use it
 
 ```mermaid
 flowchart TB
     P["promo_finder/<br/>(one Python package)"]
-    P --> W["🌐 Web app<br/>private Hugging Face Space"]
-    P --> N["📓 Notebook<br/>notebooks/Promo_Finder.ipynb"]
-    P --> C["⌨️ Command line<br/>run.py"]
+    P --> W["Web app<br/>private Hugging Face Space"]
+    P --> N["Notebook<br/>notebooks/Promo_Finder.ipynb"]
+    P --> C["Command line<br/>run.py"]
 ```
 
-### 🌐 Web app (Hugging Face Space)
+### Web app (Hugging Face Space)
 
 ```
  ┌──────────────────────────── your browser ────────────────────────────┐
@@ -118,11 +118,11 @@ flowchart TB
 3. Paste a Groq key ([free](https://console.groq.com/keys)). **No key?** It runs the no-AI baseline.
 4. **Find promos** → browse, accept/reject, download CSV
 
-**▶ Preview promo**: shows how the promo could look:
+**Preview promo**: shows how the promo could look:
 
 ```mermaid
 flowchart LR
-    S["Selected promo"] --> B["🎞️ Storyboard<br/>real lines on 9:16 cards<br/><b>always shown</b>"]
+    S["Selected promo"] --> B["Storyboard<br/>real lines on 9:16 cards<br/><b>always shown</b>"]
     S --> P["AI writes 2 shot prompts"] --> V["LTX-2.3 free GPU<br/>~6s clips with sound"]
     V -- GPU quota used up --> B
 ```
@@ -135,12 +135,12 @@ python space/build.py                          # -> space/dist/index.html + READ
 cd space/dist && python -m http.server 8765    # open http://localhost:8765
 ```
 
-### 📓 Notebook
+### Notebook
 `notebooks/Promo_Finder.ipynb` contains **all the code** and walks through it stage by stage:
 parse → one AI call → check → rank → full run → metrics → video preview.
 Runs on Colab, Jupyter or Hugging Face. The Groq key comes from Colab Secrets, an env var or a hidden prompt (press Enter for no-AI mode).
 
-### ⌨️ Command line
+### Command line
 ```bash
 pip install -r requirements.txt
 export GROQ_API_KEY=...                                 # free: console.groq.com
@@ -162,7 +162,7 @@ Results are cached per (prompt version, model, episode), so an interrupted run r
 
 ---
 
-## 📦 What a run produces (`outputs/<run>/`)
+## What a run produces (`outputs/<run>/`)
 
 | File | Contents |
 |---|---|
@@ -181,16 +181,16 @@ python -m promo_finder.evaluate score outputs/<run>                # precision@1
 
 ---
 
-## 📁 Code map
+## Code map
 
 ```
 promo_finder/
-├── parse.py        1️⃣  screenplay → events with IDs
-├── prompts.py      2️⃣  the AI instructions (versioned)
-├── candidates.py   2️⃣  one AI call per episode + no-AI baseline
+├── parse.py        [1]  screenplay → events with IDs
+├── prompts.py      [2]  the AI instructions (versioned)
+├── candidates.py   [2]  one AI call per episode + no-AI baseline
 ├── llm.py              one client for Groq / OpenRouter / OpenAI / Ollama / custom
-├── validate.py     3️⃣  snap · reject · flag · dedupe
-├── rank.py         4️⃣  priority score · selection · sensitivity
+├── validate.py     [3]  snap · reject · flag · dedupe
+├── rank.py         [4]  priority score · selection · sensitivity
 ├── pipeline.py         runs 1→4, writes outputs
 ├── evaluate.py         automatic metrics + blind review sheet
 └── preview.py          optional video-preview prompts
@@ -202,17 +202,17 @@ tests/              validator tests (synthetic data only)
 
 ---
 
-## ⚠️ Known limits
+## Known limits
 
 | Limit | What it means |
 |---|---|
-| 📝 Text only | A look or a silence that plays well on screen is invisible to it |
-| ⏱️ Script ≠ final edit | Expect ~±0.5s adjustment by an editor |
-| 🎭 Nicknames | "THE FORMER GROOM" = a named character can confuse the "makes sense alone" check |
-| 📈 Scores ≠ results | Only real posting data (clicks, watch-through, installs) proves which promo works |
+| Text only | A look or a silence that plays well on screen is invisible to it |
+| Script ≠ final edit | Expect ~±0.5s adjustment by an editor |
+| Nicknames | "THE FORMER GROOM" = a named character can confuse the "makes sense alone" check |
+| Scores ≠ results | Only real posting data (clicks, watch-through, installs) proves which promo works |
 
-## 📄 Input format
+## Input format
 Each `.txt` has an `EPISODE NUMBER` / `EPISODE LOGLINE` header, then blocks like `**SPEAKER (Tone):**`, `**ACTION:**`, `**CAMERA:**`, `**SOUND FX:**`, each followed by `Start: (mm:ss.xx) | End: (mm:ss.xx)`. If a file yields 0 events, the run stops and names the file.
 
-## 🔒 Privacy
+## Privacy
 Screenplays and run outputs are confidential: never committed, never uploaded to the Space. Keys are never stored in code, files or the Space.
