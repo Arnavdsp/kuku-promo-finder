@@ -139,8 +139,15 @@ h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;c
 .pv-msg{font-size:13.5px;color:var(--muted);margin-bottom:10px;line-height:1.5}
 .pv-msg.warn{color:var(--amber)}
 .videos{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
-.videos figure{margin:0;width:180px}
-.videos video{width:180px;aspect-ratio:9/16;border-radius:14px;background:#000;border:1px solid var(--line)}
+.videos figure{margin:0;width:min(180px,calc(50% - 5px))}
+.videos video{width:100%;aspect-ratio:9/16;border-radius:14px;background:#000;border:1px solid var(--line)}
+.samples{max-width:860px;margin:34px auto 0;display:none}
+.samples.show{display:block}
+.sample{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px}
+.sample .info{flex:1;min-width:240px;font-size:14px;line-height:1.5;color:#C9CBD1}
+.sample h3{margin:0 0 4px;font-size:17px;color:var(--text)}
+.sample .tagline{font-size:12px;color:var(--dim);margin-top:8px}
+.s-title{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);margin:0 0 10px;text-align:center}
 .videos figcaption{font-size:11.5px;color:var(--muted);margin-top:4px}
 .board{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
 .card{flex:0 0 132px;aspect-ratio:9/16;border-radius:14px;padding:10px;display:flex;flex-direction:column;justify-content:flex-end;position:relative;overflow:hidden;
@@ -209,6 +216,7 @@ table.kvt td:first-child{color:var(--muted);width:42%}
     </div>
     <div class="prog" id="prog"><div class="lbl"><span id="progT">Starting…</span><span id="progN"></span></div><div class="track"><div class="fill" id="progF"></div></div></div>
     <div class="err" id="err"></div>
+    <div class="samples" id="samplesStart"></div>
   </section>
 
   <section id="results">
@@ -221,6 +229,7 @@ table.kvt td:first-child{color:var(--muted);width:42%}
   <div class="foot">The AI proposes · code checks · a score ranks · a human approves</div>
 </div>
 
+<script type="application/json" id="samples">/*__SAMPLES__*/</script>
 <script type="application/json" id="pysrc">/*__PY_SOURCES__*/</script>
 <script type="text/plain" id="worker-src">
 importScripts("https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js");
@@ -299,6 +308,29 @@ const MODELS = [
   ["qwen/qwen3.8-27b", "Qwen 3.8 27B", "Different model family · compare its picks"],
 ];
 const VIDEO_SPACE = "Lightricks/LTX-2-3";
+let SAMPLES = [];
+try { SAMPLES = JSON.parse(document.getElementById("samples").textContent).filter(x => Object.keys(x.clips || {}).length); } catch (e) { SAMPLES = []; }
+function samplesHtml(intro) {
+  if (!SAMPLES.length) return "";
+  const f = (t) => { t = Number(t) || 0; const m = Math.floor(t / 60), s = t - m * 60; return String(m).padStart(2, "0") + ":" + s.toFixed(2).padStart(5, "0"); };
+  return (intro ? '<div class="s-title">Sample preview · how a top promo could look</div>' : "") + SAMPLES.map(x => {
+    const seg = x.segments.map(s => `Ep ${s.episode} · ${f(s.start)}–${f(s.end)}`).join(" + ");
+    const vids = ["hook_shot", "cliff_shot"].filter(k => x.clips[k]).map(k => `<figure><video src="${x.clips[k]}" controls playsinline loop preload="metadata"></video><figcaption>${k === "hook_shot" ? "Opening · hook" : "Ending · cliffhanger"}</figcaption></figure>`).join("");
+    const e = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    return `<div class="sample"><div class="videos">${vids}</div><div class="info"><h3>Promo #${x.rank} of the submitted run</h3>
+      <div>${e(seg)} · ${Number(x.duration || 0).toFixed(0)}s</div>
+      <div style="margin-top:8px"><b style="color:var(--red)">HOOK</b> “${e(x.hook_text)}”</div>
+      <div><b style="color:var(--amber)">CLIFF</b> “${e(x.cliffhanger_text)}”</div>
+      <div class="tagline">Pre-rendered with LTX-2.3 (free GPU) from shot prompts written by GPT-OSS 120B from the real lines. AI-generated prototype, not the show's footage. Ranking never depends on it.</div></div></div>`;
+  }).join("");
+}
+function sampleFor(c) {     // same moment: same episode(s) and >= 60% time overlap per segment
+  return SAMPLES.find(x => x.segments.length === c.segments.length && x.segments.every((s, i) => {
+    const t = c.segments[i]; if (s.episode !== t.episode) return false;
+    const ov = Math.min(s.end, t.end) - Math.max(s.start, t.start);
+    return ov / Math.min(s.end - s.start, t.end - t.start) >= 0.6; }));
+}
+if (SAMPLES.length) { document.getElementById("samplesStart").innerHTML = samplesHtml(true); document.getElementById("samplesStart").classList.add("show"); }
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const fmt = (t) => { t = Number(t) || 0; const m = Math.floor(t / 60), s = t - m * 60; return String(m).padStart(2, "0") + ":" + s.toFixed(2).padStart(5, "0"); };
@@ -393,6 +425,7 @@ function lists() {
   if (r.montages.length) L.push(["montages", "Montages · experimental", r.montages]);
   L.push(["baseline", r.llm ? "Baseline (no AI)" : "Ranked (baseline)", r.baseline]);
   L.push(["rejected", "Rejected", r.rejected]);
+  if (SAMPLES.length) L.push(["samples", "Sample preview", SAMPLES]);
   L.push(["metrics", "Run metrics", null]);
   return L;
 }
@@ -401,6 +434,7 @@ function drawTabs() {
   $("tabs").querySelectorAll(".tab").forEach(b => b.onclick = () => { S.tab = b.dataset.k; drawTabs(); });
   const [, , arr] = lists().find(x => x[0] === S.tab);
   if (S.tab === "metrics") return drawMetrics();
+  if (S.tab === "samples") { $("tabBody").innerHTML = samplesHtml(false); return; }
   if (S.tab === "rejected") return drawRejected(arr);
   if (!arr.length) { $("tabBody").innerHTML = `<div class="panel empty">Nothing here for this run.</div>`; return; }
   const sel = S.sel[S.tab] || arr[0].id; S.sel[S.tab] = sel;
@@ -486,6 +520,8 @@ function storyboard(c) {
     ${ev.kind === "DIALOGUE" ? `<div class="sp">${esc(ev.speaker)}</div>“${esc(ev.text)}”` : esc(ev.text)}</div>`).join("")}</div>`;
 }
 function startPreview(c) {
+  const smp = sampleFor(c);
+  if (smp) { S.prompts[c.id] = smp.prompts; S.videos[c.id] = {state: "done", clips: smp.clips, sample: true}; return renderVideo(c.id); }
   if (S.prompts[c.id] && !S.prompts[c.id].error && S.videos[c.id]?.state !== "failed") return renderVideo(c.id);
   S.prompts[c.id] = {loading: true}; S.awaiting = c.id; S.videos[c.id] = {state: "idle", clips: {}};
   renderVideo(c.id);
@@ -500,6 +536,7 @@ function renderVideo(id) {
   if (P.loading) msg = '<span class="spin"></span>Writing shot prompts from the real lines…';
   else if (V.state === "running") msg = `<span class="spin"></span>${esc(V.note || "Generating video on a free GPU (LTX-2.3)…")}`;
   else if (V.state === "failed") msg = `<span class="pv-msg warn">${esc(V.note)}</span>`;
+  else if (V.state === "done" && V.sample) msg = "Pre-rendered preview of this promo (generated earlier on the free LTX-2.3 GPU, so it plays instantly). AI-generated prototype, not the real footage. Storyboard of the actual cut below.";
   else if (V.state === "done") msg = "Video prototype from the screenplay (AI-generated, not the real footage). Storyboard of the actual cut below.";
   const vids = ["hook_shot", "cliff_shot"].filter(k => V.clips[k]).map(k => `<figure><video src="${esc(V.clips[k])}" controls playsinline loop></video><figcaption>${k === "hook_shot" ? "Opening · hook" : "Ending · cliffhanger"}</figcaption></figure>`).join("");
   pv.innerHTML = `<div class="pv-msg ${V.state === "failed" ? "warn" : ""}">${msg}</div>${vids ? `<div class="videos">${vids}</div>` : ""}
