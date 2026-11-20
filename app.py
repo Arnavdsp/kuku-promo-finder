@@ -2,7 +2,9 @@
 
 Uploads are processed in a temporary folder and deleted. Nothing is stored. The API key lives only in this session.
 """
+import hmac
 import json
+import os
 import tempfile
 from pathlib import Path
 
@@ -25,7 +27,15 @@ with st.sidebar:
     model = st.text_input("Model", value=PRESETS[provider]["model"])
     base_url = st.text_input("Base URL", value=PRESETS[provider]["base_url"], disabled=provider == "none")
     api_key = st.text_input("API key", type="password", disabled=provider in ("none", "ollama"),
-                            help="Kept in this session only. Or set GROQ_API_KEY / LLM_API_KEY in the environment.")
+                            help="Used for this session only; never stored or logged.")
+    # A key saved on the server (env / Streamlit secrets) is used ONLY after the owner's APP_PASSWORD is entered,
+    # so visitors can never spend the owner's quota. Without APP_PASSWORD, server keys are ignored entirely.
+    owner_pw = os.getenv("APP_PASSWORD", "")
+    owner_ok = False
+    if owner_pw:
+        typed = st.text_input("Owner password (optional)", type="password",
+                              help="Only the app owner has this. It unlocks the server-side key.")
+        owner_ok = bool(typed) and hmac.compare_digest(typed, owner_pw)
     st.header("3 · Options")
     episodes = st.text_input("Episodes (blank = all)", placeholder="e.g. 1-10")
     montage = st.checkbox("Cross-episode montages (experimental, +1 call)")
@@ -33,6 +43,9 @@ with st.sidebar:
 
 if go:
     try:
+        if not api_key and not owner_ok and provider not in ("none", "ollama", "custom"):
+            st.error("Paste an API key (or use provider 'none' for the no-AI baseline).")
+            st.stop()
         cfg = LLMConfig.from_env(provider, model or None, base_url or None, api_key or None)
     except LLMError as ex:
         st.error(str(ex))
@@ -51,7 +64,7 @@ if go:
         bar = st.progress(0.0, text="Starting…")
         try:
             res = run_pipeline(src, cfg, out_root=tmp / "out", episodes=episodes or None, montage=montage,
-                               cache_dir=Path(tempfile.gettempdir()) / "promo_finder_cache",
+                               cache_dir=tmp / "cache",   # per-run: nothing persists on the server
                                progress=lambda i, n, ep: bar.progress(i / n, text=f"Episode {ep} ({i}/{n})"))
         except Exception as ex:  # show the real error to the user
             st.error(f"Run failed: {ex}")
