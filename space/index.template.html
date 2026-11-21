@@ -495,7 +495,7 @@ $("go").onclick = async () => {
   if (key && !model) return fail("Choose a model in the menu at the top (or type one in Options → Model).");
   S.lastProvider = p ? p.name : ""; S.lastModel = model;
   S.pending = {type: "run", files, key, model, provider: p ? p.id : "none", base: p ? baseOf(p) : "", headers: (p && p.headers) || {},
-               episodes: $("eps").value.trim(), montage: $("mont").checked};
+               episodes: $("eps").value.trim().replace(/^(all|\*)$/i, "").replace(/\s+/g, "").replace(/[–—]/g, "-"), montage: $("mont").checked};
   S.prompts = {}; S.videos = {}; S.decisions = {}; S.fail = null;
   if (S.ready) { worker.postMessage(S.pending, files.map(f => f.bytes)); progress("Reading screenplays…", "", 5); }
   else progress("Loading Python runtime (first time ~20 MB)…", "", 3);
