@@ -359,7 +359,7 @@ function samplesHtml(intro) {
     const seg = x.segments.map(s => `Ep ${s.episode} · ${f(s.start)}–${f(s.end)}`).join(" + ");
     const vids = ["hook_shot", "cliff_shot"].filter(k => x.clips[k]).map(k => `<figure><video src="${x.clips[k]}" controls playsinline loop preload="metadata"></video><figcaption>${k === "hook_shot" ? "Opening · hook" : "Ending · cliffhanger"}</figcaption></figure>`).join("");
     const e = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-    return `<div class="sample"><div class="videos">${vids}</div><div class="info"><h3>Promo #${x.rank} of the submitted run</h3>
+    return `<div class="sample"><div class="videos">${vids}</div><div class="info"><h3>${e(x.label || `Promo #${x.rank} of the submitted run`)}</h3>
       <div>${e(seg)} · ${Number(x.duration || 0).toFixed(0)}s</div>
       <div style="margin-top:8px"><b style="color:var(--red)">HOOK</b> “${e(x.hook_text)}”</div>
       <div><b style="color:var(--amber)">CLIFF</b> “${e(x.cliffhanger_text)}”</div>
